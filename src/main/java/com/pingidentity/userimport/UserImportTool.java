@@ -278,7 +278,6 @@ public class UserImportTool extends CommandLineTool {
         futures.add(executorService.submit(() -> {
           RestTemplate client = new OAuth2RestTemplate(resource);
           client.setMessageConverters(messageConverters);
-
           ObjectPair<CSVRecord, Long> csvRecord;
           while ((csvRecord = getCSVRecord(parser)) != null) {
             barrier.await();
@@ -288,7 +287,7 @@ public class UserImportTool extends CommandLineTool {
                 .contentType(MediaType.parseMediaType("application/vnd.pingidentity.user.import+json"))
                 .body(user);
             try {
-              client.exchange(request, ObjectNode.class);
+              ResponseEntity<String> response = client.exchange(request, ObjectNode.class);
               success.incrementAndGet();
             } catch (Exception e) {
               error.incrementAndGet();
@@ -299,6 +298,7 @@ public class UserImportTool extends CommandLineTool {
                 log.error("Error response:\n{}", ((RestClientResponseException) e).getResponseBodyAsString());
               }
             }
+            //Add MFA here
             if (currentTotal % 10 == 0) {
               long duration = System.currentTimeMillis() - startTime;
               double rate = currentTotal / (duration / 1000.0);

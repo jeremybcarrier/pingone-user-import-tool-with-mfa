@@ -1,4 +1,4 @@
-name.honorificPrefix,name.given,name.middle,name.family,name.honorificSuffix,name.formatted,primaryPhone,mobilePhone,email,username,password,enabled
-Captain,Jack,Johnny,Sparrow,Ph.D,Jack Sparrow,,,jsparrow@searader.com,jsparrow,P@$$w0rd1,TRUE
-,Test,First,Example,,Test Example,,,example1@example.com,testexam,T3$t3r11,
-
+name.honorificPrefix,name.given,name.middle,name.family,name.honorificSuffix,name.formatted,primaryPhone,mobilePhone,email,username,password,enabled,registerprimarymfa,registermobilemfa,registeremailmfa
+Captain,Jack,Johnny,Sparrow,Ph.D,Jack Sparrow,+12147266821,,jsparrow@searader.com,jsparrow,P@$$w0rd1,TRUE,TRUE,TRUE,TRUE
+,Test,First,Example,,Test Example,,+13434343434,example1@example.com,testexam,T3$t3r11,,TRUE,TRUE,TRUE
+,Bob,Phil,Smith,,Bob Smith,,13434343434,bobsmith@nowherecom,bobsmith,2Federate,TRUE,TRUE,,

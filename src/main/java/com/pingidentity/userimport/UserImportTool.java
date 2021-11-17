@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -287,7 +288,88 @@ public class UserImportTool extends CommandLineTool {
                 .contentType(MediaType.parseMediaType("application/vnd.pingidentity.user.import+json"))
                 .body(user);
             try {
-              ResponseEntity<String> response = client.exchange(request, ObjectNode.class);
+              //JC - Added response entity here to capture resopnse from user creation
+              ResponseEntity<ObjectNode> response = client.exchange(request, ObjectNode.class);
+              //JC - Checking response back - if we got a 201 (create) then continue
+              if(response.getStatusCodeValue() == 201) {
+                //JC - get the response body
+                ObjectNode node = response.getBody();
+                //JC - make sure the registerprimarymfa field exists as it is optional
+                if(user.findValue("registerprimarymfa") != null) {
+                  //JC - if the user record has a registerprimarymfa value of true, register the primary phone as an MFA device
+                  if(user.findValue("registerprimarymfa").booleanValue() == true) {
+                    ObjectNode mfauser = JsonNodeFactory.instance.objectNode();
+                    mfauser.put("type","SMS");
+                    mfauser.put("phone",user.findValue("primaryPhone"));
+                    mfauser.put("status","ACTIVE");
+                    URI mfaUri = UriComponentsBuilder.fromUriString("https://" + platformUri + "/v1/environments/{envId}/users/" + node.findValue("id").toString().replaceAll("^\"|\"$", "") + "/devices")
+                                 .buildAndExpand(environmentId)
+                                 .toUri();
+                    RequestEntity mfarequest = RequestEntity.method(HttpMethod.POST, mfaUri)
+                    .contentType(MediaType.parseMediaType("application/json"))
+                    .body(mfauser);
+                    try {
+                        ResponseEntity<ObjectNode> mfaresponse = client.exchange(mfarequest, ObjectNode.class);
+                    } catch (Exception e){
+                        log.error("Encountered error registering primary phone as MFA device for user with ID " + node.findValue("id"));
+                        if (e instanceof RestClientResponseException) {
+                          log.error("Error response:\n{}",((RestClientResponseException) e).getResponseBodyAsString());
+                          log.error(mfauser.toString());
+                        }
+                    }
+                  }                  
+                } 
+                //JC - make sure the registermobilemfa field exists as it is optional
+                if(user.findValue("registermobilemfa") != null) {
+                  //JC - if the user record has a registermobilemfa value of true, register the mobile phone as an MFA device
+                  if(user.findValue("registermobilemfa").booleanValue() == true) {
+                    ObjectNode mfauser = JsonNodeFactory.instance.objectNode();
+                    mfauser.put("type","SMS");
+                    mfauser.put("phone",user.findValue("mobilePhone"));
+                    mfauser.put("status","ACTIVE");
+                    URI mfaUri = UriComponentsBuilder.fromUriString("https://" + platformUri + "/v1/environments/{envId}/users/" + node.findValue("id").toString().replaceAll("^\"|\"$", "") + "/devices")
+                                 .buildAndExpand(environmentId)
+                                 .toUri();
+                    RequestEntity mfarequest = RequestEntity.method(HttpMethod.POST, mfaUri)
+                    .contentType(MediaType.parseMediaType("application/json"))
+                    .body(mfauser);
+                    try {
+                        ResponseEntity<ObjectNode> mfaresponse = client.exchange(mfarequest, ObjectNode.class);
+                    } catch (Exception e){
+                        log.error("Encountered error registering mobile phone as MFA device for user with ID " + node.findValue("id"));
+                        if (e instanceof RestClientResponseException) {
+                          log.error("Error response:\n{}",((RestClientResponseException) e).getResponseBodyAsString());
+                          log.error(mfauser.toString());
+                        }
+                    }
+                  }                  
+                } 
+                //JC - make sure the registeremailmfa field exists as it is optional
+                if(user.findValue("registeremailmfa") != null) {
+                  //JC - if the user record has a registeremailmfa value of true, register the email address as an MFA device
+                  if(user.findValue("registeremailmfa").booleanValue() == true) {
+                    ObjectNode mfauser = JsonNodeFactory.instance.objectNode();
+                    mfauser.put("type","EMAIL");
+                    mfauser.put("email",user.findValue("email"));
+                    mfauser.put("status","ACTIVE");
+                    URI mfaUri = UriComponentsBuilder.fromUriString("https://" + platformUri + "/v1/environments/{envId}/users/" + node.findValue("id").toString().replaceAll("^\"|\"$", "") + "/devices")
+                                 .buildAndExpand(environmentId)
+                                 .toUri();
+                    RequestEntity mfarequest = RequestEntity.method(HttpMethod.POST, mfaUri)
+                    .contentType(MediaType.parseMediaType("application/json"))
+                    .body(mfauser);
+                    try {
+                        ResponseEntity<ObjectNode> mfaresponse = client.exchange(mfarequest, ObjectNode.class);
+                    } catch (Exception e){
+                        log.error("Encountered error registering email as MFA device for user with ID " + node.findValue("id"));
+                        if (e instanceof RestClientResponseException) {
+                          log.error("Error response:\n{}",((RestClientResponseException) e).getResponseBodyAsString());
+                          log.error(mfauser.toString());
+                        }
+                    }
+                  }                  
+                } 
+              }
               success.incrementAndGet();
             } catch (Exception e) {
               error.incrementAndGet();
@@ -298,7 +380,6 @@ public class UserImportTool extends CommandLineTool {
                 log.error("Error response:\n{}", ((RestClientResponseException) e).getResponseBodyAsString());
               }
             }
-            //Add MFA here
             if (currentTotal % 10 == 0) {
               long duration = System.currentTimeMillis() - startTime;
               double rate = currentTotal / (duration / 1000.0);
@@ -359,6 +440,54 @@ public class UserImportTool extends CommandLineTool {
       String enabled = csvRecord.get("enabled");
       user.put("enabled", enabled == null || enabled.trim().isEmpty() ? true : Boolean.valueOf(enabled));
     }
+      
+    boolean doingmfa = false;  
+      
+    if (headerNames.contains("registerprimarymfa")) {
+      String registerprimarymfa = csvRecord.get("registerprimarymfa");
+      if((Boolean.valueOf(registerprimarymfa) == true)){
+          if(csvRecord.get("primaryPhone").trim().isEmpty() != true) {
+              user.put("registerprimarymfa",true);
+              doingmfa = true;
+          } else {
+              user.put("registerprimarymfa",false);
+          }
+      }
+    }
+    if (headerNames.contains("registermobilemfa")) {
+      String registermobilemfa = csvRecord.get("registermobilemfa");
+      if((Boolean.valueOf(registermobilemfa) == true)){
+          if(csvRecord.get("mobilePhone").trim().isEmpty() != true) {
+              user.put("registermobilemfa",true);
+              doingmfa = true;
+          } else {
+              user.put("registermobilemfa",false);
+          }
+      }
+    }
+    if (headerNames.contains("registeremailmfa")) {
+      String registeremailmfa = csvRecord.get("registeremailmfa");
+      if((Boolean.valueOf(registeremailmfa) == true)){
+          if(csvRecord.get("email").trim().isEmpty() != true) {
+              user.put("registeremailmfa",true);
+              doingmfa = true;
+          } else {
+              user.put("registeremailmfa",false);
+          }
+      }
+    }
+    
+    if(doingmfa == true) {
+        user.put("mfaEnabled",true);
+    }
+    /*if (headerNames.contains("enabled")) {
+      String enabled = csvRecord.get("enabled");
+      user.put("enabled", enabled == null || enabled.trim().isEmpty() ? true : Boolean.valueOf(enabled));
+    }
+    if (headerNames.contains("enabled")) {
+      String enabled = csvRecord.get("enabled");
+      user.put("enabled", enabled == null || enabled.trim().isEmpty() ? true : Boolean.valueOf(enabled));
+    }*/
 
     ObjectNode name = user.with("name");
     addUserAttribute(csvRecord, name, "name.honorificPrefix", "honorificPrefix");

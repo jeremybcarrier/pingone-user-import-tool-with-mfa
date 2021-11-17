@@ -10,7 +10,7 @@ To build:
     
 To get usage information:
 
-    java -jar target/user-import-tool-1.0-SNAPSHOT-jar-with-dependencies.jar -?
+    java -jar target/user-import-tool-1.1-WithMFA-jar-with-dependencies.jar -?
 
 Your csv should contain a list of users. At a minimum, each record should have email and username attributes. An example csv is provided [here](https://github.com/pingidentity/pingone-customers-user-import-tool/blob/master/examples.csv) for your convenience. This tool also supports these attributes:
 
@@ -24,6 +24,11 @@ Your csv should contain a list of users. At a minimum, each record should have e
     name.family
     name.honorificSuffix
     name.formatted
+    password
+    enabled
+    registerprimarymfa
+    registermobilemfa
+    registeremailmfa
 
 **NOTE:** There must be no spaces between commas to detect the values properly.
 
@@ -68,13 +73,13 @@ To confirm Maven is installed (only required to rebuild the project) type `mvn -
     * Advanced usage details are available if you run java -jar user-import-tool-1.0-SNAPSHOT-jar-with-dependencies.jar -?
 
     ```
-    java -jar user-import-tool-1.0-SNAPSHOT-jar-with-dependencies.jar --csvFile <YOUR CSV FILE> --environmentId <YOUR ENVIRONMENT ID> --populationId <YOUR POPULATION ID> --clientId <YOUR CLIENT ID> --clientSecret <YOUR CLIENT SECRET>
+    java -jar user-import-tool-1.1-WithMFA-jar-with-dependencies.jar --csvFile <YOUR CSV FILE> --environmentId <YOUR ENVIRONMENT ID> --populationId <YOUR POPULATION ID> --clientId <YOUR CLIENT ID> --clientSecret <YOUR CLIENT SECRET>
     ```
 
     For example:
     
     ```
-    java -jar user-import-tool-1.0-SNAPSHOT-jar-with-dependencies.jar --csvFile myUserLost.csv --environmentId daa7bf58-680a-4f50-ce79-7b384afc2421 --populationId a685ed8a-0294-3db9-94be-cec6009d230d --clientId a0525221-7305-41f0-3408-d890a833b80a --clientSecret xgfujhfr5GEg5D.162UkSiJszDtnS4xUM7_EF2bM20rqzEhRxfXz5mEyoFxp
+    java -jar user-import-tool-1.1-WithMFA-jar-with-dependencies.jar --csvFile myUserLost.csv --environmentId daa7bf58-680a-4f50-ce79-7b384afc2421 --populationId a685ed8a-0294-3db9-94be-cec6009d230d --clientId a0525221-7305-41f0-3408-d890a833b80a --clientSecret xgfujhfr5GEg5D.162UkSiJszDtnS4xUM7_EF2bM20rqzEhRxfXz5mEyoFxp
     ```
 
 5. When the tool is finished running, it will summarize the results for you and tell you if there are any failures. If there are no failures then the users should now exist in P14C.
